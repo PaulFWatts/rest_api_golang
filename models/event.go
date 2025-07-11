@@ -3,12 +3,12 @@ package models
 import "time"
 
 type Event struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Location    string    `json:"location"`
-	DateTime    time.Time `json:"datetime"`
-	UserID      int       `json:"user_id"`
+	ID          int
+	Name        string    `binding:"required"`
+	Description string    `binding:"required"`
+	Location    string    `binding:"required"`
+	DateTime    time.Time `binding:"required"`
+	UserID      int
 }
 
 var events = []Event{} // In-memory storage for events
@@ -16,4 +16,8 @@ var events = []Event{} // In-memory storage for events
 func (event Event) Save() {
 	// todo: Implement logic to save the event to a database
 	events = append(events, event)
+}
+
+func GetAllEvents() []Event {
+	return events
 }
