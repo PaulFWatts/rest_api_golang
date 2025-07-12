@@ -1,12 +1,15 @@
 package main
 
 import (
+	"net/http"
+
+	"github.com/PaulFWatts/rest_api_golang/db"
 	"github.com/PaulFWatts/rest_api_golang/models"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func main() {
+	db.InitDB() // Initialize the database connection and create necessary tables
 	server := gin.Default() // Engine instance with default middleware (logger and recovery)
 
 	server.GET("/events", getEvents)
