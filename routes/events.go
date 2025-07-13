@@ -88,3 +88,27 @@ func updateEvent(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"message": "Event updated successfully!"})
 }
+
+func deleteEvent(context *gin.Context) {
+	// Handler logic for deleting an event
+	// This function will be called when a DELETE request is made to /events/:id
+	eventID, err := strconv.ParseInt(context.Param("id"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse event ID."})
+		return
+	}
+
+	event, err := models.GetEvent(eventID)	
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve event."})
+		return
+	}
+
+	err = event.Delete() // Call the DeleteEvent method to remove the event from the database
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not delete event."})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully!"})
+}
