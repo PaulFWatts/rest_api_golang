@@ -55,3 +55,36 @@ func createEvent(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "Event created!", "event": event})
 }
+
+func updateEvent(context *gin.Context) {
+	// Handler logic for updating an existing event
+	// This function will be called when a PUT request is made to /events/:id
+	eventID, err := strconv.ParseInt(context.Param("id"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse event ID."})
+		return
+	}
+
+	_, err = models.GetEvent(eventID)	
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve event."})
+		return
+	}
+
+	var updatedEvent models.Event // Create a new Event instance to hold the updated data
+	err = context.ShouldBindJSON(&updatedEvent) // Bind the JSON request body to the updatedEvent struct
+		if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
+		return
+	}
+
+	updatedEvent.ID = eventID // Set the ID of the updated event to the one being updated
+	
+	err = updatedEvent.Update() // Call the Update method to save changes to the event
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update event."})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Event updated successfully!"})
+}

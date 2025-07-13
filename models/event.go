@@ -66,3 +66,18 @@ func GetEvent(id int64) (*Event, error) {
 	}
 	return &event, nil // Return the found event
 }
+
+func (event Event) Update() error {
+	// SQL query to update an existing event
+	query := `
+	UPDATE events 
+	SET name = ?, description = ?, location = ?, datetime = ?
+	WHERE id = ?`
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err // Return error if the query preparation fails
+	}
+	defer stmt.Close() // Ensure the statement is closed after execution
+	_, err = stmt.Exec(event.Name, event.Description, event.Location, event.DateTime, event.ID)
+	return err // Return nil if everything is successful
+}
