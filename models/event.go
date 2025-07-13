@@ -1,9 +1,13 @@
 package models
 
-import "time"
+import (
+	"github.com/PaulFWatts/rest_api_golang/db"
+	"time"
+)
+
 
 type Event struct {
-	ID          int
+	ID          int64
 	Name        string    `binding:"required"`
 	Description string    `binding:"required"`
 	Location    string    `binding:"required"`
@@ -13,11 +17,39 @@ type Event struct {
 
 var events = []Event{} // In-memory storage for events
 
-func (event Event) Save() {
-	// todo: Implement logic to save the event to a database
-	events = append(events, event)
+func (e Event) Save() error {
+	query := `
+	INSERT INTO events (id, name, description, location, datetime, user_id) 
+	VALUES (?, ?, ?, ?, ?, ?)` // SQL query to insert a new event
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err // Return error if the query fails
+	}
+	defer stmt.Close() // Ensure the statement is closed after execution
+	result, err := stmt.Exec(e.ID, e.Name, e.Description, e.Location, e.DateTime, e.UserID)
+	if err != nil {
+		return err // Return error if execution fails
+	}
+	id, err := result.LastInsertId() // Get the last inserted ID
+	e.ID = id
+	return err // Return nil if everything is successful
 }
 
-func GetAllEvents() []Event {
-	return events
+func GetAllEvents() ([]Event, error) {
+	query := "SELECT * FROM events" // SQL query to retrieve all events
+	rows, err := db.DB.Query(query)
+	if err != nil {
+		return nil, err // Return err if the query fails
+	}
+	defer rows.Close() // Ensure the rows are closed after reading
+	var events []Event
+	for rows.Next() {
+		var event Event
+		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
+		if err != nil {
+			return nil, err // Return err if scanning fails
+		}
+		events = append(events, event) // Append the event to the slice
+	}
+	return events, nil
 }
