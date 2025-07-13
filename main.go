@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/PaulFWatts/rest_api_golang/db"
 	"github.com/PaulFWatts/rest_api_golang/models"
@@ -13,6 +14,7 @@ func main() {
 	server := gin.Default() // Engine instance with default middleware (logger and recovery)
 
 	server.GET("/events", getEvents)
+	server.GET("/events/:id", getEvent) // This can be used to get a specific event by ID
 	server.POST("/events", createEvent)
 
 	server.Run(":8080") // Start the server on port 8080
@@ -27,6 +29,22 @@ func getEvents(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, events)
+}
+
+func getEvent(context *gin.Context) {
+	// Handler logic for retrieving a specific event by ID
+	// This function will be called when a GET request is made to /events/:id
+	eventID, err := strconv.ParseInt(context.Param("id"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse event ID."})
+		return
+	}
+	event, err := models.GetEvent(eventID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve event."})
+		return
+	}
+	context.JSON(http.StatusOK, event) // Return the event as JSON response
 }
 
 func createEvent(context *gin.Context) {
