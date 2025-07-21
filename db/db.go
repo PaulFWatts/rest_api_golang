@@ -6,37 +6,52 @@ import (
 	_ "github.com/mattn/go-sqlite3" // Importing SQLite driver
 )
 
-var DB *sql.DB // Global variable to hold the database connection
+var DB *sql.DB
 
-// InitDB initializes the database connection
-// This function should be called at the start of the application
 func InitDB() {
 	var err error
 	DB, err = sql.Open("sqlite3", "api.db")
+
 	if err != nil {
-		panic("Failed to connect to the database: " + err.Error())
+		panic("Could not connect to database.")
 	}
 
-	DB.SetMaxOpenConns(10) // Set maximum open connections to the database
-	DB.SetMaxIdleConns(5)  // Set maximum idle connections to the database
-	createTables()         // Create necessary tables if they do not exist
+	DB.SetMaxOpenConns(10)
+	DB.SetMaxIdleConns(5)
+
+	createTables()
 }
 
-// CreateTables creates necessary tables in the database
 func createTables() {
-	createEventsTable := `
-		CREATE TABLE IF NOT EXISTS events (
+	createUsersTable := `
+	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		description TEXT,
-		location TEXT NOT NULL,
-		dateTime DATETIME NOT NULL,
-		user_id INTEGER
-		)
-		`
-	_, err := DB.Exec(createEventsTable)
+		email TEXT NOT NULL UNIQUE,
+		password TEXT NOT NULL
+	)
+	`
+
+	_, err := DB.Exec(createUsersTable)
+
 	if err != nil {
-		panic("Failed to create events table: " + err.Error())
+		panic("Could not create users table.")
 	}
 
+	createEventsTable := `
+	CREATE TABLE IF NOT EXISTS events (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		description TEXT NOT NULL,
+		location TEXT NOT NULL,
+		dateTime DATETIME NOT NULL,
+		user_id INTEGER,
+		FOREIGN KEY(user_id) REFERENCES users(id)
+	)
+	`
+
+	_, err = DB.Exec(createEventsTable)
+
+	if err != nil {
+		panic("Could not create events table.")
+	}
 }

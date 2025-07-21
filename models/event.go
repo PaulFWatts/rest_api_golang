@@ -15,81 +15,90 @@ type Event struct {
 	UserID      int
 }
 
-var events = []Event{} // In-memory storage for events
 
-func (e Event) Save() error {
+func (e *Event) Save() error {
 	query := `
-	INSERT INTO events (id, name, description, location, datetime, user_id) 
-	VALUES (?, ?, ?, ?, ?, ?)` // SQL query to insert a new event
+	INSERT INTO events(name, description, location, dateTime, user_id) 
+	VALUES (?, ?, ?, ?, ?)`
 	stmt, err := db.DB.Prepare(query)
 	if err != nil {
-		return err // Return error if the query fails
+		return err
 	}
-	defer stmt.Close() // Ensure the statement is closed after execution
-	result, err := stmt.Exec(e.ID, e.Name, e.Description, e.Location, e.DateTime, e.UserID)
+	defer stmt.Close()
+	result, err := stmt.Exec(e.Name, e.Description, e.Location, e.DateTime, e.UserID)
 	if err != nil {
-		return err // Return error if execution fails
+		return err
 	}
-	id, err := result.LastInsertId() // Get the last inserted ID
+	id, err := result.LastInsertId()
 	e.ID = id
-	return err // Return nil if everything is successful
+	return err
 }
 
 func GetAllEvents() ([]Event, error) {
-	query := "SELECT * FROM events" // SQL query to retrieve all events
+	query := "SELECT * FROM events"
 	rows, err := db.DB.Query(query)
 	if err != nil {
-		return nil, err // Return err if the query fails
+		return nil, err
 	}
-	defer rows.Close() // Ensure the rows are closed after reading
+	defer rows.Close()
+
 	var events []Event
+
 	for rows.Next() {
 		var event Event
 		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
+
 		if err != nil {
-			return nil, err // Return err if scanning fails
+			return nil, err
 		}
-		events = append(events, event) // Append the event to the slice
+
+		events = append(events, event)
 	}
+
 	return events, nil
 }
 
-func GetEvent(id int64) (*Event, error) {
-	// SQL query to retrieve a specific event by ID
-	
+func GetEventByID(id int64) (*Event, error) {
 	query := "SELECT * FROM events WHERE id = ?"
-	row := db.DB.QueryRow(query, id) // Query for a specific event by ID
+	row := db.DB.QueryRow(query, id)
+
 	var event Event
 	err := row.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
 	if err != nil {
-		return nil, err // Return an empty event and error if not found
+		return nil, err
 	}
-	return &event, nil // Return the found event
+
+	return &event, nil
 }
 
 func (event Event) Update() error {
-	// SQL query to update an existing event
 	query := `
-	UPDATE events 
-	SET name = ?, description = ?, location = ?, datetime = ?
-	WHERE id = ?`
+	UPDATE events
+	SET name = ?, description = ?, location = ?, dateTime = ?
+	WHERE id = ?
+	`
 	stmt, err := db.DB.Prepare(query)
+
 	if err != nil {
-		return err // Return error if the query preparation fails
+		return err
 	}
-	defer stmt.Close() // Ensure the statement is closed after execution
+
+	defer stmt.Close()
+
 	_, err = stmt.Exec(event.Name, event.Description, event.Location, event.DateTime, event.ID)
-	return err // Return nil if everything is successful
+	return err
 }
 
 func (event Event) Delete() error {
-	// SQL query to delete an event by ID
 	query := "DELETE FROM events WHERE id = ?"
 	stmt, err := db.DB.Prepare(query)
+
 	if err != nil {
-		return err // Return error if the query preparation fails
+		return err
 	}
-	defer stmt.Close() // Ensure the statement is closed after execution
-	_, err = stmt.Exec(event.ID) // Execute the delete operation
-	return err // Return nil if everything is successful
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(event.ID)
+	return err
 }
