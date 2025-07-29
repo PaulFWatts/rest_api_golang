@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// signup validates the input, creates a new user, and saves it to the database
 func signup(context *gin.Context) {
-	// Handle user signup logic here
-	// This function should validate the input, create a new user, and save it to the database
+	
 	var user models.User
 
 	err := context.ShouldBindJSON(&user)
