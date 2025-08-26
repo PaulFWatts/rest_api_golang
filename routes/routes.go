@@ -10,4 +10,5 @@ import (
 	server.PUT("/events/:id", updateEvent) // This can be used to update a specific event by ID
 	server.DELETE("/events/:id", deleteEvent) // This can be used to delete a specific
 	server.POST("/signup", signup) // This can be used to handle user signup
+	server.POST("/login", login) // This can be used to handle user login
 }
