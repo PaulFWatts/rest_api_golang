@@ -1,22 +1,20 @@
 package main
 
 import (
+
+
+	"github.com/PaulFWatts/rest_api_golang/db"
+	"github.com/PaulFWatts/rest_api_golang/routes"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func main() {
+	db.InitDB() // Initialize the database connection and create necessary tables
 	server := gin.Default() // Engine instance with default middleware (logger and recovery)
 
-	server.GET("/events", getEvents)
+	routes.RegisterRoutes(server) // Register the routes defined in the routes package
 
 	server.Run(":8080") // Start the server on port 8080
 }
 
-func getEvents(context *gin.Context) {
-	// Handler logic for retrieving events
-	// This function will be called when a GET request is made to /events
-	context.JSON(http.StatusOK, gin.H{
-		"message": "List of events",
-	})
-}
+
