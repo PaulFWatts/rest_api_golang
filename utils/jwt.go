@@ -38,48 +38,45 @@ const secretKey = "your_secret_key"
 //	    return
 //	}
 //	// Use token in Authorization header: "Bearer " + token
-//
-// Note: Currently the claims are set to empty strings - this should be fixed
-// to use the actual email and userId parameters for proper functionality.
 func GenerateToken(email string, userId int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":  "",
-		"userId": "",
+		"email":  email,
+		"userId": userId,
 		"exp":    time.Now().Add(time.Hour * 2).Unix(),
 	})
 	return token.SignedString([]byte(secretKey))
 }
 
-// VerifyToken validates and parses a JWT token
+// VerifyToken validates and parses a JWT token, returning the user ID
 //
 // This function verifies the signature and validity of a JWT token,
 // ensuring it was signed with the correct secret key and uses HMAC signing method.
-// It performs comprehensive validation including signature verification, expiration
-// checking, and algorithm validation to prevent security vulnerabilities.
+// It performs comprehensive validation and extracts the user ID from the token claims.
 //
 // Parameters:
 //   - token: The JWT token string to verify
 //
 // Returns:
+//   - int64: The user ID extracted from the token claims
 //   - error: nil if token is valid, otherwise an error describing the validation failure
 //     Possible errors include "invalid token" for parsing/signature failures,
-//     or "unexpected signing method" for algorithm confusion attacks
+//     "invalid token claims" for malformed claims, or "userId not found in token"
 //
 // Security Features:
 //   - Validates HMAC signing method to prevent algorithm confusion attacks
 //   - Automatically checks token expiration via jwt.Parse
 //   - Verifies token signature against the secret key
-//   - Returns generic "invalid token" errors to prevent information disclosure
+//   - Safe type checking for userId extraction
 //
 // Example usage:
 //
-//	err := VerifyToken(tokenString)
+//	userId, err := VerifyToken(tokenString)
 //	if err != nil {
 //	    // Token is invalid - deny access
 //	    return
 //	}
-//	// Token is valid - proceed with request
-func VerifyToken(token string) error {
+//	// Token is valid - use userId for authorization
+func VerifyToken(token string) (int64, error) {
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC) // Ensure token method is HMAC
 		if !ok {
@@ -88,18 +85,28 @@ func VerifyToken(token string) error {
 		return []byte(secretKey), nil
 	})
 	if err != nil {
-		return errors.New("invalid token")
+		return 0, errors.New("invalid token")
 	}
 	tokenIsValid := parsedToken.Valid
 	if !tokenIsValid {
-		return errors.New("invalid token")
+		return 0, errors.New("invalid token")
 	}
 
-	// claims, ok := parsedToken.Claims.(jwt.MapClaims)
-	// if !ok {
-	//	return errors.New("invalid token claims")
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, errors.New("invalid token claims")
+	}
 
-	// email := claims["email"].(string)
-	// userId := claims["userId"].(int64)
-	return nil
+	// Extract userId from claims with type checking
+	userIdFloat, exists := claims["userId"]
+	if !exists {
+		return 0, errors.New("userId not found in token")
+	}
+
+	userId, ok := userIdFloat.(float64)
+	if !ok {
+		return 0, errors.New("invalid userId format in token")
+	}
+
+	return int64(userId), nil
 }
