@@ -85,7 +85,7 @@ func VerifyToken(token string) error {
 		if !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return secretKey, nil
+		return []byte(secretKey), nil
 	})
 	if err != nil {
 		return errors.New("invalid token")
