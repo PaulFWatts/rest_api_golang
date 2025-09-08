@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/PaulFWatts/rest_api_golang/models"
-	"github.com/PaulFWatts/rest_api_golang/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -75,17 +74,17 @@ func getEvent(context *gin.Context) {
 
 // createEvent handles POST /events - creates a new event with JWT authentication
 //
-// This handler validates the JWT token from the Authorization header, parses
-// the JSON request body into an Event struct, and saves it to the database.
-// Currently hardcodes event.ID and event.UserID to 1 for testing purposes.
+// This handler creates a new event using the authenticated user's ID from the
+// JWT middleware. The middleware validates the token and sets the user ID in
+// the Gin context, which is then used for proper event ownership.
 //
 // HTTP Method: POST
 // Endpoint: /events
-// Authentication: Required (JWT token in Authorization header)
+// Authentication: Required (JWT middleware validates Authorization header)
 //
 // Request Headers:
 //
-//	Authorization: JWT token string
+//	Authorization: JWT token string (validated by middleware)
 //
 // Request Body: JSON object with required fields:
 //   - name (string): Event name
@@ -96,7 +95,7 @@ func getEvent(context *gin.Context) {
 // Response Codes:
 //   - 201 Created: Event successfully created
 //   - 400 Bad Request: Invalid JSON request data
-//   - 401 Unauthorized: Missing, invalid, or expired JWT token
+//   - 401 Unauthorized: Missing, invalid, or expired JWT token (handled by middleware)
 //   - 500 Internal Server Error: Database save operation failed
 //
 // Response Body:
@@ -105,32 +104,21 @@ func getEvent(context *gin.Context) {
 //	Error: {"message": "error description"}
 //
 // Security Notes:
-//   - Validates JWT token before processing request
+//   - Authentication handled by JWT middleware before reaching this handler
+//   - User ID automatically extracted from validated JWT token via context
 //   - Uses JSON binding with struct validation tags
-//   - Currently uses hardcoded UserID (TODO: extract from token)
+//   - Proper event ownership through authenticated user ID
 func createEvent(context *gin.Context) {
-	token := context.Request.Header.Get("Authorization")
-
-	if token == "" {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "No authorization token provided."})
-		return
-	}
-
-	userId,err := utils.VerifyToken(token)
-
-	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired token."})
-		return
-	}
 	var event models.Event
-	err = context.ShouldBindJSON(&event)
+	err := context.ShouldBindJSON(&event)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
 		return
 	}
 
-	event.UserID = userId
+	userID := context.GetInt64("userId")
+	event.UserID = userID
 
 	err = event.Save()
 
