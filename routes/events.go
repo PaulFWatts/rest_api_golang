@@ -130,15 +130,15 @@ func createEvent(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "Event created!", "event": event})
 }
 
-// updateEvent handles PUT /events/:id - updates an existing event
+// updateEvent handles PUT /events/:id - updates existing event with ownership validation
 //
-// This handler validates the event ID from URL parameters, verifies the event
-// exists in the database, parses the JSON update data, and saves the changes.
-// The event ID from the URL takes precedence over any ID in the request body.
+// This handler validates the event ID from URL parameters, checks event ownership,
+// verifies the event exists in the database, parses the JSON update data, and saves
+// the changes. Only the event owner can modify their events, ensuring proper authorization.
 //
 // HTTP Method: PUT
 // Endpoint: /events/:id
-// Authentication: Not currently required (TODO: add JWT validation)
+// Authentication: Required (JWT middleware validates Authorization header)
 // URL Parameters: id (integer) - The unique event identifier to update
 //
 // Request Body: JSON object with fields to update:
@@ -150,6 +150,7 @@ func createEvent(context *gin.Context) {
 // Response Codes:
 //   - 200 OK: Event successfully updated
 //   - 400 Bad Request: Invalid event ID or JSON request data
+//   - 401 Unauthorized: User not authorized to update this event (not owner)
 //   - 500 Internal Server Error: Event not found or database operation failed
 //
 // Response Body:
@@ -158,9 +159,10 @@ func createEvent(context *gin.Context) {
 //	Error: {"message": "error description"}
 //
 // Security Notes:
-//   - Validates event exists before allowing updates
+//   - Validates event exists and checks ownership before updates
 //   - URL parameter ID overrides request body ID
-//   - TODO: Add authentication to prevent unauthorized updates
+//   - Authentication handled by JWT middleware
+//   - Authorization enforced through ownership validation
 func updateEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
@@ -198,20 +200,21 @@ func updateEvent(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Event updated successfully!"})
 }
 
-// deleteEvent handles DELETE /events/:id - removes an event from the database
+// deleteEvent handles DELETE /events/:id - removes an event with ownership validation
 //
-// This handler validates the event ID from URL parameters, verifies the event
-// exists in the database, and then permanently deletes it. This operation
-// cannot be undone once completed.
+// This handler validates the event ID from URL parameters, checks event ownership,
+// and then permanently deletes the event. Only the event owner can delete their
+// events, providing proper authorization control. This operation cannot be undone.
 //
 // HTTP Method: DELETE
 // Endpoint: /events/:id
-// Authentication: Not currently required (TODO: add JWT validation)
+// Authentication: Required (JWT middleware validates Authorization header)
 // URL Parameters: id (integer) - The unique event identifier to delete
 //
 // Response Codes:
 //   - 200 OK: Event successfully deleted
 //   - 400 Bad Request: Invalid or non-numeric event ID
+//   - 401 Unauthorized: User not authorized to delete this event (not owner)
 //   - 500 Internal Server Error: Event not found or database deletion failed
 //
 // Response Body:
@@ -220,14 +223,14 @@ func updateEvent(context *gin.Context) {
 //	Error: {"message": "error description"}
 //
 // Security Notes:
-//   - Validates event exists before attempting deletion
+//   - Validates event exists and checks ownership before deletion
 //   - Permanent operation - no soft delete implemented
-//   - TODO: Add authentication and authorization checks
-//   - TODO: Consider adding ownership validation (user can only delete own events)
+//   - Authentication handled by JWT middleware
+//   - Authorization enforced through ownership validation
 //
 // Database Impact:
 //   - Removes record permanently from events table
-//   - Foreign key constraints should be considered for related data
+//   - Foreign key constraints handle related registrations
 func deleteEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
@@ -244,8 +247,8 @@ func deleteEvent(context *gin.Context) {
 	}
 
 	if event.UserID != userID {
-	context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized to delete this event."})
-	return
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized to delete this event."})
+		return
 	}
 
 	err = event.Delete()
